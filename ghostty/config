@@ -1,0 +1,12 @@
+font-family = JetBrains Mono
+font-size = 14
+
+theme = Catppuccin Mocha
+background-opacity = 1
+
+cursor-style = bar
+cursor-style-blink = false
+
+shell-integration = zsh
+shell-integration-features = no-cursor
+
