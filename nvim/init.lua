@@ -83,6 +83,7 @@ map("n", "<leader>h", ":nohlsearch<CR>")
 map("n", "<leader>w", ":w<CR>")
 map("n", "<leader>q", ":q<CR>")
 map("i", "jk", "<Esc>", { desc = "Escape insert mode" })
+map("t", "jk", "<C-\\><C-n>", { noremap = true, silent = true })
 
 -- Window navigation with Alt
 map("n", "<A-h>", "<C-w>h")
@@ -130,7 +131,11 @@ vim.opt.rtp:prepend(lazypath)
 vim.g.lazy_lockfile = vim.fn.stdpath("state") .. "/lazy-lock.json"
 require("lazy").setup({
 
-
+  {
+    "tckmn/hotdog.vim",
+    lazy = false,
+    priority = 999, -- slightly below catppuccin (1000), but still early
+  },
   -- === Catppuccin Theme ===
   {
     "catppuccin/nvim",
@@ -165,7 +170,7 @@ require("lazy").setup({
     config = function()
       require("lualine").setup({
         options = {
-          theme = "tokyonight",
+          theme = "catppuccin",
           component_separators = { left = "│", right = "│" },
           section_separators = { left = "", right = "" },
         },
@@ -213,10 +218,21 @@ require("lazy").setup({
     end,
   },
 
+  {
+    "lukas-reineke/indent-blankline.nvim",
+    main = "ibl",
+    opts = {
+      indent = {
+        char = "│",
+      },
+      scope = {
+        enabled = true, -- highlights current scope too
+      },
+    },
+  },
   -- === Telescope ===
   {
     "nvim-telescope/telescope.nvim",
-    tag = "0.1.5",
     dependencies = {
       "nvim-lua/plenary.nvim",
       "nvim-tree/nvim-web-devicons",
@@ -270,6 +286,7 @@ require("lazy").setup({
             "cpp",
             "c",
             "bash",
+            "typst",
           },
           highlight = {
             enable = true,
@@ -285,6 +302,12 @@ require("lazy").setup({
     end,
   },
 
+  {
+    "kaarmu/typst.vim",
+    ft = "typst",
+  },
+
+
   -- === nvim-surround ===
   {
     "kylechui/nvim-surround",
@@ -292,6 +315,40 @@ require("lazy").setup({
     event = "VeryLazy",
     config = function()
       require("nvim-surround").setup({})
+    end,
+  },
+
+  -- === what's the point of using neovim if others dont know you are? ===
+  -- === Cord (Discord Rich Presence) ===
+  {
+    "vyfor/cord.nvim",
+    event = "VeryLazy",
+    config = function()
+      require("cord").setup({
+        enabled = true,
+        log_level = vim.log.levels.OFF,
+        editor = {
+          client = 'neovim',
+          tooltip = 'being performative',
+          icon = 'neovim'
+        },
+        assets = {
+          large_image = "neovim",
+          large_text = "Neovim",
+        },
+        display = {
+          view = "full",
+          swap_icons = true,
+          swap_fields = false,
+        },
+        text = {
+          workspace = "",
+          viewing = function(opts) return 'Viewing ' .. opts.filename end,
+          editing = function(opts) return 'Editing ' .. opts.filename end,
+          games = function(opts) return 'Playing ' .. opts.name end,
+          terminal = function(opts) return 'playing ghostty +boo' end,
+        },
+      })
     end,
   },
 
@@ -332,16 +389,11 @@ require("lazy").setup({
           "jsonls",
           "jdtls",
           "clangd",
+          "tinymist",
         },
         automatic_installation = true,
       })
     end,
-  },
-  {
-    "nvzone/typr",
-    dependencies = "nvzone/volt",
-    opts = {},
-    cmd = { "Typr", "TyprStats" },
   },
   {
     "declancm/cinnamon.nvim",
@@ -382,6 +434,43 @@ require("lazy").setup({
       local capabilities = require("cmp_nvim_lsp").default_capabilities()
 
       -- LSP keymaps when attached
+      -- typst wrap function
+      vim.api.nvim_create_autocmd("FileType", {
+        pattern = "typst",
+        callback = function()
+          vim.opt_local.wrap = true
+          vim.opt_local.linebreak = true
+          vim.opt_local.spell = true
+        end,
+      })
+      -- Typst: Compile to PDF
+      vim.api.nvim_create_autocmd("FileType", {
+        pattern = "typst",
+        callback = function()
+          vim.keymap.set("n", "<leader>tpd", function()
+            local file = vim.api.nvim_buf_get_name(0)
+            if file == "" then
+              vim.notify("No file name", vim.log.levels.ERROR)
+              return
+            end
+
+            vim.cmd("write") -- save first
+            local output = file:gsub("%.typ$", ".pdf")
+            local cmd = string.format("typst compile %s %s", file, output)
+            vim.notify("Compiling Typst → PDF...")
+            vim.fn.jobstart(cmd, {
+              on_exit = function(_, code)
+                if code == 0 then
+                  vim.notify("PDF generated: " .. output)
+                else
+                  vim.notify("Typst compile failed", vim.log.levels.ERROR)
+                end
+              end,
+            })
+          end, { desc = "Typst Compile to PDF" })
+        end,
+      })
+
       vim.api.nvim_create_autocmd("LspAttach", {
         callback = function(args)
           local client = vim.lsp.get_client_by_id(args.data.client_id)
@@ -493,8 +582,16 @@ require("lazy").setup({
         capabilities = capabilities,
       })
 
+      -- Typst
+      vim.lsp.config("tinymist", {
+        cmd = { "tinymist" },
+        filetypes = { "typst" },
+        root_markers = { ".git", "typst.toml" }, -- typst.toml if you use it, .git otherwise
+        capabilities = capabilities,
+      })
+
       -- Enable LSP servers
-      vim.lsp.enable({ "lua_ls", "pyright", "ts_ls", "jdtls", "clangd", "html", "cssls", "jsonls" })
+      vim.lsp.enable({ "lua_ls", "pyright", "ts_ls", "jdtls", "clangd", "html", "cssls", "jsonls", "tinymist" })
     end,
   },
 
@@ -588,6 +685,21 @@ require("lazy").setup({
         ignored_next_char = "[%w%.]",
       })
     end,
+  },
+
+  -- === Typst Preview ===
+  {
+    "sylvanfranklin/omni-preview.nvim",
+    opts = {},
+    dependencies = {
+      -- Typst
+      { 'chomosuke/typst-preview.nvim', lazy = true },
+    },
+    cmd = { "OmniPreview" },
+    keys = {
+      { "<leader>pt", "<cmd>OmniPreview start<CR>", desc = "OmniPreview Start" },
+      { "<leader>pT", "<cmd>OmniPreview stop<CR>",  desc = "OmniPreview Stop" },
+    }
   },
 
   -- === Commenting ===
