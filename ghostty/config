@@ -1,6 +1,7 @@
 font-family = JetBrains Mono
 font-size = 14
 
+# theme = Hot Dog Stand 
 theme = Catppuccin Mocha
 background-opacity = 1
 
