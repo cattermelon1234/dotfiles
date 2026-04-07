@@ -113,6 +113,9 @@ vim.api.nvim_create_autocmd("TermOpen", {
   end,
 })
 
+-- reloading buffer
+map("n", "<leader>r", ":e!<CR>")
+
 -- --------- Plugin Manager: lazy.nvim ----------
 local lazypath = vim.fn.stdpath("data") .. "/lazy/lazy.nvim"
 if not vim.loop.fs_stat(lazypath) then
@@ -307,6 +310,14 @@ require("lazy").setup({
     ft = "typst",
   },
 
+  -- === Diffview ===
+  {
+    "sindrets/diffview.nvim",
+    dependencies = { "nvim-tree/nvim-web-devicons" },
+    config = function()
+      require("diffview").setup({})
+    end,
+  },
 
   -- === nvim-surround ===
   {
@@ -394,21 +405,6 @@ require("lazy").setup({
         automatic_installation = true,
       })
     end,
-  },
-  {
-    "declancm/cinnamon.nvim",
-    config = function()
-      require("cinnamon").setup({
-        keymaps = {
-          basic = true,
-          extra = true,
-        },
-        options = {
-          delay = 5,
-          max_delta = { time = 250 },
-        },
-      })
-    end
   },
 
   -- === LSP Configuration (Modern vim.lsp.config API) ===
