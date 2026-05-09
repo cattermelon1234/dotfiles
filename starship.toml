@@ -36,4 +36,3 @@ style_user = "bold cyan"
 [hostname]
 ssh_only = false
 style = "bold cyan"
-
